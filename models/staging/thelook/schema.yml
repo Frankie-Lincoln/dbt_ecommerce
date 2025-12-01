@@ -1,0 +1,156 @@
+version: 2
+sources:
+  - name: thelook
+    description: "Raw e-commerce data from BigQuery Public Datasets"
+    database: bigquery-public-data
+    schema: thelook_ecommerce
+    tables:
+      - name: users              
+      - name: orders
+      - name: order_items
+      - name: products
+      - name: inventory_items
+models:
+  # ----------------------------------------------------
+  # 1. Staging Users (Customers)
+  # ----------------------------------------------------
+  - name: stg_users
+    description: "A cleaned, selected list of customer records including acquisition channel and country."
+    columns:
+      - name: user_id
+        description: "The unique identifier for the customer."
+        tests:
+          - unique
+          - not_null
+      - name: first_name
+        description: "Customer's first name."
+      - name: last_name
+        description: "Customer's last name."
+      - name: email
+        description: "Customer's email address."
+        tests:
+          - unique
+      - name: age
+        description: "Customer's age in years."
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 10
+              max_value: 100
+      - name: gender
+        description: "Customer's reported gender."
+        tests:
+          - accepted_values:
+              values: ['M', 'F']
+      - name: user_created_at
+        description: "Timestamp when the user record was created (Sign-up date)."
+      - name: country
+        description: "The customer's country of residence."
+      - name: traffic_source
+        description: "The marketing channel that led the user to the store (e.g., Search, Email, Facebook)."
+      - name: user_created_at_timestamp
+        description: "The original timestamp when the user record was created (Sign-up date)."
+        tests:
+           - not_null
+      - name: user_sign_up_month
+        description: "The month and year the user signed up (YYYY-MM string format). Used for cohort analysis."
+        tests:
+          - not_null
+
+  # ----------------------------------------------------
+  # 2. Staging Orders
+  # ----------------------------------------------------
+  - name: stg_orders
+    description: "The order header staging model. One row per order."
+    columns:
+      - name: order_id
+        description: "The unique identifier for the order."
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Foreign key to the customer who placed the order."
+        tests:
+          - not_null
+      - name: order_status
+        description: "The current status of the order (e.g., Complete, Cancelled, Returned)."
+        tests:
+          - accepted_values:
+              values: ['Complete', 'Cancelled', 'Returned', 'Processing']
+      - name: order_created_at
+        description: "Timestamp when the order was placed."
+        tests:
+          - not_null
+
+  # ----------------------------------------------------
+  # 3. Staging Order Items
+  # ----------------------------------------------------
+  - name: stg_order_items
+    description: "The line-item level detail for all sales. The grain of sales transactions."
+    columns:
+      - name: order_item_id
+        description: "The unique identifier for a specific line item within an order."
+        tests:
+          - unique
+          - not_null
+      - name: order_id
+        description: "Foreign key to the parent order (stg_orders)."
+        tests:
+          - not_null
+      - name: product_id
+        description: "Foreign key to the product (stg_products)."
+        tests:
+          - not_null
+      - name: sale_price
+        description: "The price the customer paid for this item."
+        tests:
+          - dbt_expectations.expect_column_values_to_be_greater_than:
+              value: 0
+      - name: order_item_created_at
+        description: "Timestamp of the item's creation/addition to the order."
+
+  # ----------------------------------------------------
+  # 4. Staging Products
+  # ----------------------------------------------------
+  - name: stg_products
+    description: "A cleaned dimension of all products sold."
+    columns:
+      - name: product_id
+        description: "The unique identifier for the product."
+        tests:
+          - unique
+          - not_null
+      - name: product_cost
+        description: "The cost to the business for this product."
+      - name: product_category
+        description: "The main category of the product."
+      - name: product_name
+        description: "The name of the product."
+      - name: product_brand
+        description: "The brand of the product."
+      - name: product_retail_price
+        description: "The listed retail price of the product."
+        tests:
+          - dbt_expectations.expect_column_values_to_be_greater_than:
+              value: 0
+  
+  # ----------------------------------------------------
+  # 5. Staging Inventory Items
+  # ----------------------------------------------------
+  - name: stg_inventory_items
+    description: "Line-item level cost and inventory tracking. Crucial for COGS and margin calculation."
+    columns:
+      - name: inventory_item_id
+        description: "The unique identifier for a physical item in inventory."
+        tests:
+          - unique
+          - not_null
+      - name: product_id
+        description: "Foreign key to the base product dimension."
+        tests:
+          - not_null
+      - name: cost
+        description: "The cost of goods sold (COGS) for this specific item."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_greater_than:
+              value: 0

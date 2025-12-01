@@ -1,0 +1,41 @@
+version: 2
+
+models:  
+  # ----------------------------------------------------
+  # Intermediate Models
+  # ----------------------------------------------------
+
+  - name: int_customer_order_summary
+    description: "Aggregated lifetime metrics for each user (LTV, Recency, Frequency)."
+    columns:
+      - name: user_id
+        tests:
+          - unique
+          - not_null
+      - name: total_orders_lifetime
+      - name: total_revenue_lifetime
+      - name: days_since_last_order
+
+  - name: int_product_margin
+    description: "Calculates the average cost, retail price, and margin for every product."
+    columns:
+      - name: product_id
+        tests:
+          - unique
+          - not_null
+      - name: avg_product_cost
+      - name: avg_product_margin_percentage
+
+  - name: int_order_details
+    description: "A flattened, single-row view of every order item, joining order header details."
+    columns:
+      - name: order_item_id
+        tests:
+          - unique
+          - not_null
+      - name: order_id
+        tests:
+          - not_null
+      - name: user_id
+      - name: product_id
+      - name: sale_price
