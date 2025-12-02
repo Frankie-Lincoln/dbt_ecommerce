@@ -25,6 +25,8 @@ It implements a modern **Dimensional Model** (Star Schema) focused on Customer L
 
 ## 📦 Data Model Overview
 
+<img width="1280" height="706" alt="Screenshot 2025-12-02 at 4 07 39 PM" src="https://github.com/user-attachments/assets/e987d961-0d7a-45f5-9ac7-12a9e41aa590" />
+
 The project creates three main business-ready tables in the `marts` schema:
 
 | Model           | Type          | Description                                                                       | Granularity                            | Key Metrics                                                 |
